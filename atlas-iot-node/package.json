@@ -1,0 +1,26 @@
+{
+  "name": "atlas-iot",
+  "version": "1.0.0",
+  "description": "IoT hub server with MongoDB Atlas",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "keywords": [
+    "IoT",
+    "MongoDB",
+    "Atlas",
+    "Mongoose",
+    "Experss"
+  ],
+  "author": "Bozhin Karaivanov",
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "nodemon": "^1.19.1"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "mongoose": "^5.6.5"
+  }
+}
