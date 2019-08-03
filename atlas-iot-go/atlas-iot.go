@@ -20,6 +20,7 @@ const port int = 60135
 
 var client *mongo.Client
 
+// Reading data structure
 type Reading struct {
 	Sensor      string  `json:"sensor,omitempty" bson:"sensor,omitempty"`
 	Humidity    float32 `json:"humidity" bson:"humidity"`
@@ -28,6 +29,7 @@ type Reading struct {
 	DewPoint    float32 `json:"dewpoint" bson:"dewpoint"`
 }
 
+// Event data
 type Event struct {
 	ID       primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Sender   string             `json:"sender,omitempty" bson:"sender,omitempty"`
@@ -37,6 +39,7 @@ type Event struct {
 	Version  string             `json:"version,omitempty" bson:"version,omitempty"`
 }
 
+// RequestDump dumps HTTP request data
 func RequestDump(request *http.Request) {
 	requestDump, err := httputil.DumpRequest(request, true)
 	if err != nil {
@@ -45,6 +48,7 @@ func RequestDump(request *http.Request) {
 	log.Println(string(requestDump))
 }
 
+// InsertRecordEndpoint is the insert endpoint for requested data
 func InsertRecordEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
 
@@ -79,9 +83,9 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/api/v1/events", InsertRecordEndpoint).Methods("POST")
 
-        fmt.Printf("Start at port %d...\n", port)
+	fmt.Printf("Start at port %d...\n", port)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), router))
 
-        fmt.Println("After all...")
+	fmt.Println("After all...")
 }
