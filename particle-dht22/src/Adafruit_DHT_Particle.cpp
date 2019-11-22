@@ -19,7 +19,7 @@ void DHT::begin(void)
 {
 	// set up the pins!
 	pinMode(_pin, INPUT);
-	digitalWrite(_pin, HIGH);
+	pinSetFast(_pin);
 	_lastreadtime = 0;
 }
 
@@ -167,15 +167,15 @@ boolean DHT::read(void)
 	data[0] = data[1] = data[2] = data[3] = data[4] = 0;
 
 	// pull the pin high and wait 250 milliseconds
-	digitalWrite(_pin, HIGH);
+	pinSetFast(_pin);
 	delay(250);
 
 	// now pull it low for ~20 milliseconds
 	pinMode(_pin, OUTPUT);
-	digitalWrite(_pin, LOW);
+	pinResetFast(_pin);
 	delay(20);
 	noInterrupts();
-	digitalWrite(_pin, HIGH);
+	pinSetFast(_pin);
 	delayMicroseconds(40);
 	pinMode(_pin, INPUT);
 
@@ -183,7 +183,7 @@ boolean DHT::read(void)
 	for (i = 0; i < MAXTIMINGS; i++)
 	{
 		counter = 0;
-		while (digitalRead(_pin) == laststate)
+		while (pinReadFast(_pin) == laststate)
 		{
 			counter++;
 			delayMicroseconds(1);
@@ -192,7 +192,7 @@ boolean DHT::read(void)
 				break;
 			}
 		}
-		laststate = digitalRead(_pin);
+		laststate = pinReadFast(_pin);
 
 		if (counter == 255)
 			break;
