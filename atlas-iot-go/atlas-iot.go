@@ -78,7 +78,10 @@ func main() {
 	uri := os.Args[1]
 	clientOptions := options.Client().ApplyURI(uri)
 
-	client, _ = mongo.Connect(ctx, clientOptions)
+	client, err = mongo.Connect(ctx, clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	router := mux.NewRouter()
 	router.HandleFunc("/api/v1/events", InsertRecordEndpoint).Methods("POST")
