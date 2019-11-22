@@ -6,14 +6,18 @@
  */
 
 #include <math.h>
-#include "../lib/Adafruit_DHT_Particle.h"
+#include "Adafruit_DHT_Particle.h"
 
 // Example testing sketch for various DHT humidity/temperature sensors
 // Written by ladyada, public domain
 
-#define POWERPIN D7 // What pin is the power
-#define DHTPIN D6   // what pin we're connected to
+#define MINIMAL_TIME_TO_SLEEP 300
+#define MAXIMAL_SYSTEM_CHECKS 10
 
+#define NUMBER_OF_SAMPLES 3
+
+#define POWERPIN D7   // What pin is the power
+#define DHTPIN D6     // what pin we're connected to
 #define DHTTYPE DHT22 // DHT 22 (AM2302)
 
 // Connect pin 1 (on the left) of the sensor to +5V
@@ -81,7 +85,7 @@ void setup()
     loopCount = 0;
     checkLoopCount = 0;
     delaySeconds = 15 * 60;
-    delay(2000);
+    delay(1000);
 }
 
 void loop()
@@ -101,13 +105,13 @@ void loop()
             readData("loop");
             loopCount++;
 
-            if (loopCount >= 3)
+            if (loopCount >= NUMBER_OF_SAMPLES)
             {
                 loopCount = 0;
                 Particle.publish("state", "Going to sleep for several minutes", PRIVATE);
                 digitalWrite(POWERPIN, LOW);
                 delay(2000);
-                System.sleep(SLEEP_MODE_DEEP, max(300, abs(delaySeconds)));
+                System.sleep(SLEEP_MODE_DEEP, max(MINIMAL_TIME_TO_SLEEP, abs(delaySeconds)));
             }
         }
         else
@@ -118,10 +122,10 @@ void loop()
     else
     {
 
-        if (checkLoopCount > 10)
+        if (checkLoopCount > MAXIMAL_SYSTEM_CHECKS)
         {
             checkLoopCount = 0;
-            System.sleep(SLEEP_MODE_DEEP, max(300, abs(delaySeconds)));
+            System.sleep(SLEEP_MODE_DEEP, max(MINIMAL_TIME_TO_SLEEP, abs(delaySeconds)));
         }
 
         delay(checkLoopCount * 1000);
@@ -240,7 +244,7 @@ void publishData(float h, float t, float f, float k, float dp, float hi)
 
         client.println("POST /api/v1/events HTTP/1.0");
         client.println(String::format("Host: %d.%d.%d.%d", server[0], server[1], server[2], server[3]));
-        client.println("User-Agent: photon");
+        client.println(String::format("User-Agent: %s", deviceName));
         client.println("Content-Type: application/json");
         client.println(String::format("Content-Length: %d", jsonData.length()));
         client.println();
