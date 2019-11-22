@@ -45,7 +45,7 @@ int checkLoopCount;
 int delaySeconds;
 
 String deviceName;
-String version = String("V0.0.6");
+String version = String("V0.0.7");
 
 TCPClient client;
 byte server[] = {192, 168, 5, 87};
