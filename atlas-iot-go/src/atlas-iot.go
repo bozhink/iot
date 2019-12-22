@@ -199,8 +199,6 @@ func InsertRecordEndpoint(response http.ResponseWriter, request *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		result, _ := collection.InsertOne(ctx, eventDTO)
-		log.Println(eventDTO)
-		log.Println(result)
 
 		if cancel != nil {
 			cancel()
