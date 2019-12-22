@@ -69,7 +69,21 @@ func hi(t float64, h float64) float64 {
 var client *mongo.Client
 
 // Reading data structure
-type Reading struct {
+type ReadingDataModel struct {
+	Sensor      string  `bson:"sensor,omitempty"`
+	Humidity    float32 `bson:"humidity,omitempty"`
+	Temperature float32 `bson:"temperature,omitempty"`
+	HeatIndex   float32 `bson:"heatindex,omitempty"`
+	DewPoint    float32 `bson:"dewpoint,omitempty"`
+	Pressure    float32 `bson:"pressure,omitempty"`
+	Altitude    float32 `bson:"altitude,omitempty"`
+	DP          float32 `bson:"dp,omitempty"`
+	Ps          float32 `bson:"ps,omitempty"`
+	Pa          float32 `bson:"pa,omitempty"`
+	HI          float32 `bson:"hi,omitempty"`
+}
+
+type ReadingRequestModel struct {
 	Sensor      string  `json:"sensor,omitempty" bson:"sensor,omitempty"`
 	Humidity    float32 `json:"humidity,omitempty" bson:"humidity,omitempty"`
 	Temperature float32 `json:"temperature,omitempty" bson:"temperature,omitempty"`
@@ -77,20 +91,86 @@ type Reading struct {
 	DewPoint    float32 `json:"dewpoint,omitempty" bson:"dewpoint,omitempty"`
 	Pressure    float32 `json:"pressure,omitempty" bson:"pressure,omitempty"`
 	Altitude    float32 `json:"altitude,omitempty" bson:"altitude,omitempty"`
-	dp          float32 `json:"dp,omitempty" bson:"dp,omitempty"`
-	ps          float32 `json:"ps,omitempty" bson:"ps,omitempty"`
-	pa          float32 `json:"pa,omitempty" bson:"pa,omitempty"`
-	hi          float32 `json:"hi,omitempty" bson:"hi,omitempty"`
 }
 
 // Event data
-type Event struct {
-	ID       primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Sender   string             `json:"sender,omitempty" bson:"sender,omitempty"`
-	Event    string             `json:"event,omitempty" bson:"event,omitempty"`
-	Date     time.Time          `json:"date,omitempty" bson:"date,omitempty"`
-	Readings []Reading          `json:"readings,omitempty" bson:"readings,omitempty"`
-	Version  string             `json:"version,omitempty" bson:"version,omitempty"`
+type EventDataModel struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty"`
+	Sender   string             `bson:"sender,omitempty"`
+	Event    string             `bson:"event,omitempty"`
+	Date     time.Time          `bson:"date"`
+	Readings []ReadingDataModel `bson:"readings"`
+	Version  string             `bson:"version,omitempty"`
+}
+
+type EventRequestModel struct {
+	Sender   string                `json:"sender,omitempty" bson:"sender,omitempty"`
+	Event    string                `json:"event,omitempty" bson:"event,omitempty"`
+	Readings []ReadingRequestModel `json:"readings,omitempty" bson:"readings,omitempty"`
+	Version  string                `json:"version,omitempty" bson:"version,omitempty"`
+}
+
+func getDTO(e *EventRequestModel) *EventDataModel {
+	if e == nil {
+		return nil
+	}
+
+	event := *e
+	if event.Readings == nil {
+		return nil
+	}
+
+	n := len(event.Readings)
+	if n < 1 {
+		return nil
+	}
+
+	eventDTO := EventDataModel{
+		Sender:   event.Sender,
+		Event:    event.Event,
+		Version:  event.Version,
+		Date:     time.Now(),
+		Readings: make([]ReadingDataModel, n),
+	}
+
+	for i := 0; i < n; i++ {
+		reading := event.Readings[i]
+		t := (float64)(reading.Temperature)
+		h := (float64)(reading.Humidity)
+
+		readingDTO := ReadingDataModel{
+			Sensor:      reading.Sensor,
+			Humidity:    reading.Humidity,
+			Temperature: reading.Temperature,
+			HeatIndex:   reading.HeatIndex,
+			DewPoint:    reading.DewPoint,
+			Pressure:    reading.Pressure,
+			Altitude:    reading.Altitude,
+		}
+
+		if reading.Temperature < absoluteZeroC {
+			readingDTO.Temperature = absoluteZeroC
+			readingDTO.DewPoint = absoluteZeroC
+			readingDTO.HeatIndex = absoluteZeroC
+		}
+
+		if reading.Humidity < 0 || reading.Humidity > 100 {
+			readingDTO.Humidity = 0
+			readingDTO.DewPoint = absoluteZeroC
+			readingDTO.HeatIndex = absoluteZeroC
+		}
+
+		if reading.Humidity >= 0 && reading.Temperature >= absoluteZeroC {
+			readingDTO.DP = (float32)((int)(dp(t, h)*100)) / 100.0
+			readingDTO.Ps = (float32)((int)(ps(t, h)*100)) / 100.0
+			readingDTO.Pa = (float32)((int)(pa(t, h)*100)) / 100.0
+			readingDTO.HI = (float32)((int)(hi(t, h)*100)) / 100.0
+		}
+
+		eventDTO.Readings[i] = readingDTO
+	}
+
+	return &eventDTO
 }
 
 // RequestDump dumps HTTP request data
@@ -108,46 +188,25 @@ func InsertRecordEndpoint(response http.ResponseWriter, request *http.Request) {
 
 	RequestDump(request)
 
-	var event Event
+	var event EventRequestModel
 	_ = json.NewDecoder(request.Body).Decode(&event)
-	event.Date = time.Now()
 	log.Println(event)
 
-	n := len(event.Readings)
-	if n > 0 {
+	eventDTO := getDTO(&event)
 
-		for i := 0; i < n; i++ {
-			reading := event.Readings[i]
-			if reading.Temperature < absoluteZeroC {
-				reading.Temperature = absoluteZeroC
-				reading.DewPoint = absoluteZeroC
-				reading.HeatIndex = absoluteZeroC
-			}
-
-			if reading.Humidity < 0 || reading.Humidity > 100 {
-				reading.Humidity = 0
-				reading.DewPoint = absoluteZeroC
-				reading.HeatIndex = absoluteZeroC
-			}
-
-			if reading.Humidity >= 0 && reading.Temperature > absoluteZeroC {
-				t := (float64)(reading.Temperature)
-				h := (float64)(reading.Humidity)
-				reading.dp = (float32)((int)(dp(t, h)*100)) / 100.0
-				reading.ps = (float32)((int)(ps(t, h)*100)) / 100.0
-				reading.pa = (float32)((int)(pa(t, h)*100)) / 100.0
-				reading.hi = (float32)((int)(hi(t, h)*100)) / 100.0
-			}
-		}
-
-		collection := client.Database("iot").Collection("events")
-		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-		result, _ := collection.InsertOne(ctx, event)
-
-		json.NewEncoder(response).Encode(result)
-	} else {
+	if eventDTO == nil {
 		log.Println("Invalid readings")
 		json.NewEncoder(response).Encode(nil)
+	} else {
+		collection := client.Database("iot").Collection("events")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if cancel != nil {
+			cancel()
+		}
+
+		result, _ := collection.InsertOne(ctx, eventDTO)
+
+		json.NewEncoder(response).Encode(result)
 	}
 }
 
@@ -158,7 +217,10 @@ func main() {
 		log.Fatal("Usage: atlas-iot <mongo-db-uri>")
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if cancel != nil {
+		cancel()
+	}
 
 	uri := os.Args[1]
 	clientOptions := options.Client().ApplyURI(uri)
