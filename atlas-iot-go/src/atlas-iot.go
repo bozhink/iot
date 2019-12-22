@@ -197,11 +197,14 @@ func InsertRecordEndpoint(response http.ResponseWriter, request *http.Request) {
 	} else {
 		collection := client.Database("iot").Collection("events")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+		result, _ := collection.InsertOne(ctx, eventDTO)
+		log.Println(eventDTO)
+		log.Println(result)
+
 		if cancel != nil {
 			cancel()
 		}
-
-		result, _ := collection.InsertOne(ctx, eventDTO)
 
 		json.NewEncoder(response).Encode(result)
 	}
@@ -215,9 +218,6 @@ func main() {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	if cancel != nil {
-		cancel()
-	}
 
 	uri := os.Args[1]
 	clientOptions := options.Client().ApplyURI(uri)
@@ -226,6 +226,10 @@ func main() {
 	client, e = mongo.Connect(ctx, clientOptions)
 	if e != nil {
 		log.Fatal(e)
+	}
+
+	if cancel != nil {
+		cancel()
 	}
 
 	router := mux.NewRouter()
