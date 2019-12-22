@@ -70,17 +70,17 @@ var client *mongo.Client
 
 // Reading data structure
 type Reading struct {
-	Sensor      string   `json:"sensor,omitempty" bson:"sensor,omitempty"`
-	Humidity    *float32 `json:"humidity,omitempty" bson:"humidity,omitempty"`
-	Temperature *float32 `json:"temperature,omitempty" bson:"temperature,omitempty"`
-	HeatIndex   *float32 `json:"heatindex,omitempty" bson:"heatindex,omitempty"`
-	DewPoint    *float32 `json:"dewpoint,omitempty" bson:"dewpoint,omitempty"`
-	Pressure    *float32 `json:"pressure,omitempty" bson:"pressure,omitempty"`
-	Altitude    *float32 `json:"altitude,omitempty" bson:"altitude,omitempty"`
-	dp          *float32 `bson:"dp,omitempty"`
-	ps          *float32 `bson:"ps,omitempty"`
-	pa          *float32 `bson:"pa,omitempty"`
-	hi          *float32 `bson:"hi,omitempty"`
+	Sensor      string  `json:"sensor,omitempty" bson:"sensor,omitempty"`
+	Humidity    float32 `json:"humidity,omitempty" bson:"humidity,omitempty"`
+	Temperature float32 `json:"temperature,omitempty" bson:"temperature,omitempty"`
+	HeatIndex   float32 `json:"heatindex,omitempty" bson:"heatindex,omitempty"`
+	DewPoint    float32 `json:"dewpoint,omitempty" bson:"dewpoint,omitempty"`
+	Pressure    float32 `json:"pressure,omitempty" bson:"pressure,omitempty"`
+	Altitude    float32 `json:"altitude,omitempty" bson:"altitude,omitempty"`
+	dp          float32 `json:"dp,omitempty" bson:"dp,omitempty"`
+	ps          float32 `json:"ps,omitempty" bson:"ps,omitempty"`
+	pa          float32 `json:"pa,omitempty" bson:"pa,omitempty"`
+	hi          float32 `json:"hi,omitempty" bson:"hi,omitempty"`
 }
 
 // Event data
@@ -118,32 +118,25 @@ func InsertRecordEndpoint(response http.ResponseWriter, request *http.Request) {
 
 		for i := 0; i < n; i++ {
 			reading := event.Readings[i]
-			if *reading.Temperature < absoluteZeroC {
-				reading.Temperature = nil
-				reading.DewPoint = nil
-				reading.HeatIndex = nil
+			if reading.Temperature < absoluteZeroC {
+				reading.Temperature = absoluteZeroC
+				reading.DewPoint = absoluteZeroC
+				reading.HeatIndex = absoluteZeroC
 			}
 
-			if *reading.Humidity < 0 || *reading.Humidity > 100 {
-				reading.Humidity = nil
-				reading.DewPoint = nil
-				reading.HeatIndex = nil
+			if reading.Humidity < 0 || reading.Humidity > 100 {
+				reading.Humidity = 0
+				reading.DewPoint = absoluteZeroC
+				reading.HeatIndex = absoluteZeroC
 			}
 
-			if reading.Humidity != nil && reading.Temperature != nil {
-				t := (float64)(*reading.Temperature)
-				h := (float64)(*reading.Humidity)
-				*reading.dp = (float32)((int)(dp(t, h)*100)) / 100.0
-				*reading.ps = (float32)((int)(ps(t, h)*100)) / 100.0
-				*reading.pa = (float32)((int)(pa(t, h)*100)) / 100.0
-				*reading.hi = (float32)((int)(hi(t, h)*100)) / 100.0
-				if reading.DewPoint == nil {
-					*reading.DewPoint = *reading.dp
-				}
-
-				if reading.HeatIndex == nil {
-					*reading.HeatIndex = *reading.hi
-				}
+			if reading.Humidity >= 0 && reading.Temperature > absoluteZeroC {
+				t := (float64)(reading.Temperature)
+				h := (float64)(reading.Humidity)
+				reading.dp = (float32)((int)(dp(t, h)*100)) / 100.0
+				reading.ps = (float32)((int)(ps(t, h)*100)) / 100.0
+				reading.pa = (float32)((int)(pa(t, h)*100)) / 100.0
+				reading.hi = (float32)((int)(hi(t, h)*100)) / 100.0
 			}
 		}
 
