@@ -20,7 +20,7 @@ import (
 // See https://en.wikipedia.org/wiki/Dew_point
 
 const port int = 60135
-const absoluteZeroC = -273.15
+const absoluteZeroC float32 = -273.15
 
 // Dew point constants
 const a float64 = 6.1121 // mbar
@@ -146,6 +146,10 @@ func getDTO(e *EventRequestModel) *EventDataModel {
 			DewPoint:    reading.DewPoint,
 			Pressure:    reading.Pressure,
 			Altitude:    reading.Altitude,
+			DP:          (float32)((int)(dp(t, h)*100)) / 100.0,
+			Ps:          (float32)((int)(ps(t, h)*100)) / 100.0,
+			Pa:          (float32)((int)(pa(t, h)*100)) / 100.0,
+			HI:          (float32)((int)(hi(t, h)*100)) / 100.0,
 		}
 
 		if reading.Temperature < absoluteZeroC {
@@ -158,13 +162,6 @@ func getDTO(e *EventRequestModel) *EventDataModel {
 			readingDTO.Humidity = 0
 			readingDTO.DewPoint = absoluteZeroC
 			readingDTO.HeatIndex = absoluteZeroC
-		}
-
-		if reading.Humidity >= 0 && reading.Temperature >= absoluteZeroC {
-			readingDTO.DP = (float32)((int)(dp(t, h)*100)) / 100.0
-			readingDTO.Ps = (float32)((int)(ps(t, h)*100)) / 100.0
-			readingDTO.Pa = (float32)((int)(pa(t, h)*100)) / 100.0
-			readingDTO.HI = (float32)((int)(hi(t, h)*100)) / 100.0
 		}
 
 		eventDTO.Readings[i] = readingDTO
