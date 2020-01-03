@@ -75,11 +75,11 @@ void loop()
         USE_SERIAL.print("[HTTP] begin...\n");
         // configure target server and url
         //http.begin("https://192.168.1.12/test.html", "7a 9c f4 db 40 d3 62 5a 6e 21 bc 5c cc 66 c8 3e a1 45 59 38"); //HTTPS
-        http.begin(API_URI); //HTTP
+        http.begin(IOT_API_URI); //HTTP
         http.addHeader(CONTENT_TYPE_HTTP_HEADER_NAME, CONTENT_TYPE_HTTP_HEADER_VALUE);
-        http.addHeader(USER_AGENT_HTTP_HEADER_NAME, USER_AGENT);
-        http.addHeader(IOT_EVENT_HTTP_HEADER_NAME, EVENT);
-        http.addHeader(IOT_VERSION_HTTP_HEADER_NAME, VERSION);
+        http.addHeader(USER_AGENT_HTTP_HEADER_NAME, IOT_USER_AGENT);
+        http.addHeader(IOT_EVENT_HTTP_HEADER_NAME, IOT_EVENT);
+        http.addHeader(IOT_VERSION_HTTP_HEADER_NAME, IOT_VERSION);
 
         USE_SERIAL.print("[HTTP] POST...\n");
         // start connection and send HTTP header
