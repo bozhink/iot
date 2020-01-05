@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -68,7 +69,7 @@ func hi(t float64, h float64) float64 {
 
 var client *mongo.Client
 
-// Reading data structure
+// ReadingDataModel - reading data model.
 type ReadingDataModel struct {
 	Sensor      string  `bson:"sensor,omitempty"`
 	Humidity    float32 `bson:"humidity,omitempty"`
@@ -83,6 +84,7 @@ type ReadingDataModel struct {
 	HI          float32 `bson:"hi,omitempty"`
 }
 
+// ReadingRequestModel - reading request model.
 type ReadingRequestModel struct {
 	Sensor      string  `json:"sensor,omitempty" bson:"sensor,omitempty"`
 	Humidity    float32 `json:"humidity,omitempty" bson:"humidity,omitempty"`
@@ -93,7 +95,7 @@ type ReadingRequestModel struct {
 	Altitude    float32 `json:"altitude,omitempty" bson:"altitude,omitempty"`
 }
 
-// Event data
+// EventDataModel - event data model.
 type EventDataModel struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty"`
 	Sender   string             `bson:"sender,omitempty"`
@@ -103,6 +105,7 @@ type EventDataModel struct {
 	Version  string             `bson:"version,omitempty"`
 }
 
+// EventRequestModel - event request model.
 type EventRequestModel struct {
 	Sender   string                `json:"sender,omitempty" bson:"sender,omitempty"`
 	Event    string                `json:"event,omitempty" bson:"event,omitempty"`
@@ -110,7 +113,7 @@ type EventRequestModel struct {
 	Version  string                `json:"version,omitempty" bson:"version,omitempty"`
 }
 
-func getDTO(e *EventRequestModel) *EventDataModel {
+func getDTO(e *EventRequestModel, request *http.Request) *EventDataModel {
 	if e == nil {
 		return nil
 	}
@@ -125,10 +128,25 @@ func getDTO(e *EventRequestModel) *EventDataModel {
 		return nil
 	}
 
+	iotSender := strings.TrimSpace(event.Sender)
+	if len(iotSender) < 1 {
+		iotSender = strings.TrimSpace(request.Header.Get("User-Agent"))
+	}
+
+	iotEvent := strings.TrimSpace(event.Event)
+	if len(iotEvent) < 1 {
+		iotEvent = strings.TrimSpace(request.Header.Get("X-IOT-EVENT"))
+	}
+
+	iotVersion := strings.TrimSpace(event.Version)
+	if len(iotVersion) < 1 {
+		iotVersion = strings.TrimSpace(request.Header.Get("X-IOT-VERSION"))
+	}
+
 	eventDTO := EventDataModel{
-		Sender:   event.Sender,
-		Event:    event.Event,
-		Version:  event.Version,
+		Sender:   iotSender,
+		Event:    iotEvent,
+		Version:  iotVersion,
 		Date:     time.Now(),
 		Readings: make([]ReadingDataModel, n),
 	}
@@ -181,30 +199,40 @@ func RequestDump(request *http.Request) {
 
 // InsertRecordEndpoint is the insert endpoint for requested data
 func InsertRecordEndpoint(response http.ResponseWriter, request *http.Request) {
-	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Content-Type", "application/json")
 
-	RequestDump(request)
+	encoder := json.NewEncoder(response)
 
-	var event EventRequestModel
-	_ = json.NewDecoder(request.Body).Decode(&event)
-	log.Println(event)
+	if request.Header.Get("Content-Type") == "application/json" {
 
-	eventDTO := getDTO(&event)
+		decoder := json.NewDecoder(request.Body)
 
-	if eventDTO == nil {
-		log.Println("Invalid readings")
-		json.NewEncoder(response).Encode(nil)
-	} else {
-		collection := client.Database("iot").Collection("events")
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		RequestDump(request)
 
-		result, _ := collection.InsertOne(ctx, eventDTO)
+		var event EventRequestModel
+		_ = decoder.Decode(&event)
+		log.Println(event)
 
-		if cancel != nil {
-			cancel()
+		eventDTO := getDTO(&event, request)
+
+		if eventDTO == nil {
+			log.Println("Invalid readings")
+			encoder.Encode(nil)
+		} else {
+			collection := client.Database("iot").Collection("events")
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+			result, _ := collection.InsertOne(ctx, eventDTO)
+
+			if cancel != nil {
+				cancel()
+			}
+
+			encoder.Encode(result)
 		}
-
-		json.NewEncoder(response).Encode(result)
+	} else {
+		response.WriteHeader(400)
+		encoder.Encode(nil)
 	}
 }
 
