@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -41,7 +40,11 @@ const c8 float64 = 0.00072546
 const c9 float64 = -0.000003582
 
 func gamma(t float64, h float64) float64 {
-	return math.Log(h/100.0) + (b*t)/(c+t)
+	if h <= 0.0 || h > 100.0 {
+		return 0
+	} else {
+		return math.Log(h/100.0) + (b*t)/(c+t)
+	}
 }
 
 // Get temperature of the dew point in °C
@@ -128,25 +131,25 @@ func getDTO(e *EventRequestModel, request *http.Request) *EventDataModel {
 		return nil
 	}
 
-	iotSender := strings.TrimSpace(event.Sender)
-	if len(iotSender) < 1 {
-		iotSender = strings.TrimSpace(request.Header.Get("User-Agent"))
-	}
+	// iotSender := strings.TrimSpace(event.Sender)
+	// if len(iotSender) < 1 {
+	// 	iotSender = strings.TrimSpace(request.Header.Get("User-Agent"))
+	// }
 
-	iotEvent := strings.TrimSpace(event.Event)
-	if len(iotEvent) < 1 {
-		iotEvent = strings.TrimSpace(request.Header.Get("X-IOT-EVENT"))
-	}
+	// iotEvent := strings.TrimSpace(event.Event)
+	// if len(iotEvent) < 1 {
+	// 	iotEvent = strings.TrimSpace(request.Header.Get("X-IOT-EVENT"))
+	// }
 
-	iotVersion := strings.TrimSpace(event.Version)
-	if len(iotVersion) < 1 {
-		iotVersion = strings.TrimSpace(request.Header.Get("X-IOT-VERSION"))
-	}
+	// iotVersion := strings.TrimSpace(event.Version)
+	// if len(iotVersion) < 1 {
+	// 	iotVersion = strings.TrimSpace(request.Header.Get("X-IOT-VERSION"))
+	// }
 
 	eventDTO := EventDataModel{
-		Sender:   iotSender,
-		Event:    iotEvent,
-		Version:  iotVersion,
+		Sender:   event.Sender,
+		Event:    event.Event,
+		Version:  event.Version,
 		Date:     time.Now(),
 		Readings: make([]ReadingDataModel, n),
 	}
