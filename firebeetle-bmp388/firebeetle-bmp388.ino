@@ -31,10 +31,10 @@ String getPayload(String reading);
 
 void setup()
 {
-    USE_SERIAL.begin(115200);
-    while (!USE_SERIAL)
-    {
-    }
+    // USE_SERIAL.begin(115200);
+    // while (!USE_SERIAL)
+    // {
+    // }
     // USE_SERIAL.setDebugOutput(true);
 
     pinMode(LED_BUILTIN, OUTPUT);
@@ -62,11 +62,11 @@ void loop()
         if (reading.length() > 2) // The reading must be valid JSON object.
         {
             String payload = getPayload(reading);
-            USE_SERIAL.println(payload);
+            // USE_SERIAL.println(payload);
 
             HTTPClient http;
 
-            USE_SERIAL.print("[HTTP] begin...\n");
+            // USE_SERIAL.print("[HTTP] begin...\n");
             // configure target server and url
             //http.begin("https://192.168.1.12/test.html", "7a 9c f4 db 40 d3 62 5a 6e 21 bc 5c cc 66 c8 3e a1 45 59 38"); //HTTPS
             http.begin(IOT_API_URI); //HTTP
@@ -75,32 +75,32 @@ void loop()
             http.addHeader(IOT_EVENT_HTTP_HEADER_NAME, IOT_EVENT);
             http.addHeader(IOT_VERSION_HTTP_HEADER_NAME, IOT_VERSION);
 
-            USE_SERIAL.print("[HTTP] POST...\n");
+            // USE_SERIAL.print("[HTTP] POST...\n");
             // start connection and send HTTP header
             int httpCode = http.POST(payload);
 
-            // httpCode will be negative on error
-            if (httpCode > 0)
-            {
-                // HTTP header has been send and Server response header has been handled
-                USE_SERIAL.printf("[HTTP] POST... code: %d\n", httpCode);
+            // // httpCode will be negative on error
+            // if (httpCode > 0)
+            // {
+            //     // HTTP header has been send and Server response header has been handled
+            //     // USE_SERIAL.printf("[HTTP] POST... code: %d\n", httpCode);
 
-                // file found at server
-                if (httpCode == HTTP_CODE_OK)
-                {
-                    USE_SERIAL.println(http.getString());
-                }
-            }
-            else
-            {
-                USE_SERIAL.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
-            }
+            //     // file found at server
+            //     if (httpCode == HTTP_CODE_OK)
+            //     {
+            //         // USE_SERIAL.println(http.getString());
+            //     }
+            // }
+            // else
+            // {
+            //     // USE_SERIAL.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            // }
 
             http.end();
         }
     }
 
-    delay(10000);
+    delay(30000);
 }
 
 bool configureSensor()
